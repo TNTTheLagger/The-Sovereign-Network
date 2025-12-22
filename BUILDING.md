@@ -136,3 +136,88 @@ sudo dnf install openssl-devel
 brew install openssl
 export OPENSSL_DIR=$(brew --prefix openssl)
 ```
+
+## Hardware Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| CPU | 2 cores | 4+ cores |
+| RAM | 4 GB | 8 GB |
+| Storage | 20 GB SSD | 100 GB NVMe |
+| Network | 10 Mbps | 100 Mbps |
+
+- **SSD required** - RocksDB performs poorly on HDD
+- **Testnet**: 2 GB RAM may work with `--testnet`
+- **Storage grows** with DHT data - plan for expansion
+
+## Security (Home Node Operators)
+
+Running a node on a home computer requires basic security hygiene.
+
+### Network Security
+
+**Firewall - only expose required ports:**
+
+```bash
+# Ubuntu/Debian
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 33445/udp  # ZHTP mesh
+sudo ufw allow 33446/tcp  # QUIC transport
+sudo ufw enable
+```
+
+**Bind admin interfaces to localhost:**
+
+```bash
+./zhtp --testnet --rpc-bind 127.0.0.1
+```
+
+### Run as Dedicated User
+
+```bash
+sudo useradd -r -s /bin/false zhtp-node
+sudo mkdir -p /opt/zhtp
+sudo chown -R zhtp-node:zhtp-node /opt/zhtp
+sudo -u zhtp-node ./zhtp --testnet
+```
+
+### System Hardening
+
+```bash
+# Keep system updated
+sudo apt update && sudo apt upgrade -y
+
+# Install fail2ban for SSH protection
+sudo apt install fail2ban -y
+sudo systemctl enable fail2ban
+
+# Disable SSH password auth (use keys)
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+sudo systemctl restart sshd
+```
+
+### What NOT to Do
+
+- Don't run as root
+- Don't store personal crypto wallets on the node machine
+- Don't expose SSH (port 22) without fail2ban
+- Don't use the node for daily browsing/email
+- Don't share your node's identity keys
+- Don't ignore system updates
+
+### Key Management
+
+- Backup validator keys offline (USB drive, paper)
+- Never store keys on machines with personal data
+- Use separate physical device if possible (NUC, Raspberry Pi)
+
+### Monitoring
+
+```bash
+# Check connections
+sudo netstat -tlnp | grep zhtp
+
+# Monitor logs
+journalctl -u zhtp -f
+```
